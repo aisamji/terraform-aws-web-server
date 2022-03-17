@@ -2,10 +2,6 @@ variable "name" {
   type = string
 }
 
-variable "domain_name" {
-  type = string
-}
-
 variable "price_class" {
   type        = string
   description = "Limit the edge locations used to save on costs. See https://aws.amazon.com/cloudfront/pricing/ for details."
@@ -24,9 +20,9 @@ variable "tags" {
 
 variable "rules" {
   type = list(object({
-    prefix  = string
-    origin  = map(any)
-    caching = bool
+    prefix = string
+    origin = map(any)
+    cached = bool
   }))
 
   validation {
@@ -55,10 +51,10 @@ variable "rules" {
   }
 
   validation {
-    error_message = "The prefix must begin and end with \"/\"."
+    error_message = "The prefix must begin with and must not end with \"/\"."
     condition = alltrue([
       for r in var.rules :
-      length(regexall("^/(.*/)?$", r.prefix)) > 0
+      length(regexall("^/(?:.*[^/])?$", r.prefix)) > 0
     ])
   }
 
@@ -68,4 +64,19 @@ variable "rules" {
   }
 }
 
-#join("/", concat([""], compact(concat(split("/", "/media/"), ["*"]))))
+variable "geo_restriction" {
+  type = object({
+    type      = string
+    locations = list(string)
+  })
+
+  default = {
+    type      = "none"
+    locations = []
+  }
+
+  # validation {
+  #   error_message = ""
+  #   condition     = contains(["none", "whitelist", "blacklist"], var.geo_restriction.type)
+  # }
+}
