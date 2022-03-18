@@ -1,13 +1,14 @@
 locals {
-  price_class        = "PriceClass_${var.price_class}"
-  target_group_rules = []
-  default_rule       = one([for n, r in local.rules : r if r.prefix == "/"])
-  default_rule_name  = one([for n, r in local.rules : n if r.prefix == "/"])
-  non_default_rules  = { for n, r in local.rules : n => r if r.prefix != "/" }
+  price_class       = "PriceClass_${var.price_class}"
+  default_rule      = one([for n, r in local.rules : r if r.prefix == "/"])
+  non_default_rules = { for n, r in local.rules : n => r if r.prefix != "/" }
+  use_custom_domain = var.certificate_arn != null
+
   cache_policies = {
     enabled  = "658327ea-f89d-4fab-a63d-7e88639e58f6"
     disabled = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
   }
+
   methods = {
     all     = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     options = ["GET", "HEAD", "OPTIONS"]
@@ -70,7 +71,11 @@ resource "aws_cloudfront_distribution" "default" {
 
   tags = var.tags
 
+  aliases = local.use_custom_domain ? [var.name] : []
+
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = !local.use_custom_domain
+    acm_certificate_arn            = var.certificate_arn
+    ssl_support_method             = local.use_custom_domain ? "sni-only" : null
   }
 }

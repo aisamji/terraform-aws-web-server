@@ -1,7 +1,3 @@
-variable "name" {
-  type = string
-}
-
 variable "price_class" {
   type        = string
   description = "Limit the edge locations used to save on costs. See https://aws.amazon.com/cloudfront/pricing/ for details."
@@ -34,19 +30,10 @@ variable "rules" {
   }
 
   validation {
-    error_message = "The type of origin must be \"bucket\", \"virtual_machine\" or \"container\"."
+    error_message = "The type of origin must be \"bucket\" or \"application\"."
     condition = alltrue([
       for r in var.rules :
-      contains(["bucket", "virtual_machine", "container"], lookup(r.origin, "type", ""))
-    ])
-  }
-
-  validation {
-    error_message = "The origin port is required for type \"virtual_machine\"."
-    condition = alltrue([
-      for r in var.rules :
-      contains(keys(r.origin), "port")
-      if r.origin.type == "virtual_machine"
+      contains(["bucket", "application"], lookup(r.origin, "type", ""))
     ])
   }
 
@@ -79,4 +66,13 @@ variable "geo_restriction" {
     error_message = "The restriction type must be one of \"none\", \"whitelist\", or \"blacklist\"."
     condition     = contains(["none", "whitelist", "blacklist"], var.geo_restriction.type)
   }
+}
+
+variable "name" {
+  type = string
+}
+
+variable "certificate_arn" {
+  type    = string
+  default = null
 }
