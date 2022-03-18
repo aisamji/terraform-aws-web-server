@@ -22,7 +22,7 @@ resource "aws_cloudfront_distribution" "default" {
     iterator = bucket
 
     content {
-      origin_id   = bucket.key
+      origin_id   = "bucket"
       domain_name = bucket.value.bucket_regional_domain_name
 
       s3_origin_config {
@@ -38,7 +38,7 @@ resource "aws_cloudfront_distribution" "default" {
   default_cache_behavior {
     allowed_methods  = lookup(local.default_rule, "allow_all_methods", false) ? local.methods.all : lookup(local.default_rule, "allow_options_method", false) ? local.methods.options : local.methods.default
     cached_methods   = lookup(local.default_rule, "cache_options_method", false) ? local.methods.options : local.methods.default
-    target_origin_id = local.default_rule_name
+    target_origin_id = "bucket"
     cache_policy_id  = local.default_rule.cached ? local.cache_policies["enabled"] : local.cache_policies["disabled"]
 
     viewer_protocol_policy = "redirect-to-https"
@@ -52,20 +52,10 @@ resource "aws_cloudfront_distribution" "default" {
       path_pattern     = rule.value.matcher
       allowed_methods  = lookup(rule.value, "allow_all_methods", false) ? local.methods.all : lookup(rule.value, "allow_options_method", false) ? local.methods.options : local.methods.default
       cached_methods   = lookup(rule.value, "cache_options_method", false) ? local.methods.options : local.methods.default
-      target_origin_id = rule.key
+      target_origin_id = "bucket"
       cache_policy_id  = rule.value.cached ? local.cache_policies["enabled"] : local.cache_policies["disabled"]
 
       viewer_protocol_policy = "redirect-to-https"
-
-      dynamic "function_association" {
-        for_each = rule.value.origin.type != "bucket" && lookup(rule.value.origin, "disable_rewrite", false) ? [] : [aws_cloudfront_function.rewrite[rule.key]]
-        iterator = function
-
-        content {
-          event_type   = "viewer-request"
-          function_arn = function.value.arn
-        }
-      }
     }
   }
 
@@ -83,13 +73,4 @@ resource "aws_cloudfront_distribution" "default" {
   viewer_certificate {
     cloudfront_default_certificate = true
   }
-}
-
-resource "aws_cloudfront_function" "rewrite" {
-  for_each = local.non_default_rules
-  name     = each.key
-  runtime  = "cloudfront-js-1.0"
-  code = templatefile("${path.module}/rewrite_url.js", {
-    PREFIX = each.value.prefix
-  })
 }

@@ -75,8 +75,8 @@ variable "geo_restriction" {
     locations = []
   }
 
-  # validation {
-  #   error_message = ""
-  #   condition     = contains(["none", "whitelist", "blacklist"], var.geo_restriction.type)
-  # }
+  validation {
+    error_message = "The restriction type must be one of \"none\", \"whitelist\", or \"blacklist\"."
+    condition     = contains(["none", "whitelist", "blacklist"], var.geo_restriction.type)
+  }
 }
