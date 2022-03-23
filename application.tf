@@ -14,9 +14,6 @@ locals {
   application_origins                    = distinct([for n, r in local.application_rules : r.origin.id])
   application_rules_grouped_by_origin_id = { for n, r in local.application_rules : r.origin.id => { subnets = r.origin.subnets } }
   application_origin_info                = zipmap(keys(local.application_rules_grouped_by_origin_id), matchkeys(values(local.application_rules_grouped_by_origin_id), keys(local.application_rules_grouped_by_origin_id), local.application_origins))
-
-  is_default_rule_application   = one([for n, r in local.application_rules : r if r.prefix == "/"]) != null
-  non_default_application_rules = { for n, r in local.application_rules : n => r if r.prefix != "/" }
 }
 
 data "aws_subnet" "default" {
@@ -45,17 +42,12 @@ resource "aws_lb_listener" "default" {
   certificate_arn = var.certificate_arn
 
   default_action {
-    type             = local.is_default_rule_application ? "forward" : "fixed-response"
-    target_group_arn = aws_lb_target_group.default[local.snake_cased_name].arn
+    type = "fixed-response"
 
-    dynamic "fixed_response" {
-      for_each = local.is_default_rule_application ? [] : ["run-it-dummy"]
-
-      content {
-        content_type = "text/plain"
-        message_body = "Application Not Configured"
-        status_code  = "500"
-      }
+    fixed_response {
+      content_type = "text/html"
+      message_body = "<html><head><title>${var.name}</title></head><body><h1>Request not authorized</h1></body></html>"
+      status_code  = "403"
     }
   }
 }
@@ -74,6 +66,13 @@ resource "aws_lb_listener_rule" "default" {
   condition {
     path_pattern {
       values = [local.application_rules[each.key].matcher]
+    }
+  }
+
+  condition {
+    http_header {
+      http_header_name = local.secret_token_header
+      values           = [random_uuid.token.result]
     }
   }
 }

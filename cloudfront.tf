@@ -39,6 +39,11 @@ resource "aws_cloudfront_distribution" "default" {
       origin_id   = "application"
       domain_name = loadbalancer.value.dns_name
 
+      custom_header {
+        name  = local.secret_token_header
+        value = random_uuid.token.result
+      }
+
       custom_origin_config {
         http_port  = 80
         https_port = 443
