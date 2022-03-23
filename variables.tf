@@ -76,3 +76,11 @@ variable "certificate_arn" {
   type    = string
   default = null
 }
+
+variable "network_config" {
+  type = object({
+    vpc_id  = string
+    subnets = list(string)
+  })
+  default = null
+}

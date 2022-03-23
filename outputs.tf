@@ -9,6 +9,15 @@ output "bucket" {
   }
 }
 
+output "application" {
+  value = {
+    server_security_group = one(aws_security_group.alb_to_server.*.id)
+    target_group_arns = { for k, v in aws_lb_target_group.default :
+      k => v.arn
+    }
+  }
+}
+
 output "distribution" {
   value = {
     arn            = aws_cloudfront_distribution.default.arn
