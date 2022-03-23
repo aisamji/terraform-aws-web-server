@@ -17,17 +17,12 @@ variable "tags" {
 variable "rules" {
   type = list(object({
     prefix = string
-    origin = map(any)
+    origin = object({
+      type    = string
+      subnets = list(string)
+    })
     cached = bool
   }))
-
-  validation {
-    error_message = "The origin type is required."
-    condition = alltrue([
-      for r in var.rules :
-      contains(keys(r.origin), "type")
-    ])
-  }
 
   validation {
     error_message = "The type of origin must be \"bucket\" or \"application\"."
@@ -77,10 +72,10 @@ variable "certificate_arn" {
   default = null
 }
 
-variable "network_config" {
-  type = object({
-    vpc_id  = string
-    subnets = list(string)
-  })
-  default = null
-}
+# variable "network_config" {
+#   type = object({
+#     vpc_id  = string
+#     subnets = list(string)
+#   })
+#   default = null
+# }

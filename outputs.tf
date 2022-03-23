@@ -11,9 +11,10 @@ output "bucket" {
 
 output "application" {
   value = {
-    server_security_group = one(aws_security_group.alb_to_server.*.id)
-    target_group_arns = { for k, v in aws_lb_target_group.default :
-      k => v.arn
+    for n, r in local.application_rules :
+    n => {
+      security_group = aws_security_group.cloudfront_to_alb[r.origin.id].id
+      target_groups  = aws_lb_target_group.default[n].arn
     }
   }
 }
