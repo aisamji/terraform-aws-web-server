@@ -1,33 +1,40 @@
 locals {
   application_rules = {
-    for n, r in local.rules :
-    n => merge(r,
-      tomap({
-        origin = merge(r.origin, {
-          id = join("|", concat([r.origin.type], r.origin.subnets))
-        })
-      })
-    )
-    if r.origin.type == "application"
+    for n, r in local.rules : n => r if r.origin.type == "application"
   }
 
-  application_origins                    = distinct([for n, r in local.application_rules : r.origin.id])
-  application_rules_grouped_by_origin_id = { for n, r in local.application_rules : r.origin.id => { subnets = r.origin.subnets } }
-  application_origin_info                = zipmap(keys(local.application_rules_grouped_by_origin_id), matchkeys(values(local.application_rules_grouped_by_origin_id), keys(local.application_rules_grouped_by_origin_id), local.application_origins))
+  application_origins = distinct([for n, r in local.application_rules : r.origin.id])
+  application_rules_grouped_by_origin_id = {
+    for n, r in local.application_rules :
+    r.origin.id => {
+      subnets = r.origin.subnets
+    }
+  }
+  partial_application_origin_info = zipmap(keys(local.application_rules_grouped_by_origin_id), matchkeys(values(local.application_rules_grouped_by_origin_id), keys(local.application_rules_grouped_by_origin_id), local.application_origins))
+  application_origin_info = {
+    for n, i in local.partial_application_origin_info :
+    n => merge(
+      i,
+      {
+        vpc       = data.aws_subnet.default[n].vpc_id
+        safe_name = substr(join("-", [local.snake_cased_name, md5(data.aws_subnet.default[n].vpc_id)]), 0, 32)
+      }
+    )
+  }
 }
 
 data "aws_subnet" "default" {
-  for_each = local.application_origin_info
+  for_each = local.partial_application_origin_info
   id       = each.value.subnets.0
 }
 
 resource "aws_lb" "default" {
   for_each = local.application_origin_info
 
-  name               = local.snake_cased_name
+  name               = each.value.safe_name
   load_balancer_type = "application"
   subnets            = each.value.subnets
-  security_groups    = [aws_security_group.cloudfront_to_alb[each.key].id]
+  security_groups    = [aws_security_group.default[each.key].id]
 
   tags = var.tags
 }
@@ -87,10 +94,10 @@ resource "aws_lb_target_group" "default" {
   vpc_id      = data.aws_subnet.default[each.value.origin.id].vpc_id
 }
 
-resource "aws_security_group" "cloudfront_to_alb" {
-  for_each    = local.application_origin_info
-  name_prefix = "cloudfront-to-alb"
-  vpc_id      = data.aws_subnet.default[each.key].vpc_id
+resource "aws_security_group" "default" {
+  for_each = local.application_origin_info
+  name     = each.value.safe_name
+  vpc_id   = each.value.vpc
 
   tags = var.tags
 
@@ -108,28 +115,6 @@ resource "aws_security_group" "cloudfront_to_alb" {
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_security_group" "alb_to_server" {
-  for_each    = local.application_origin_info
-  name_prefix = "alb-to-server"
-  vpc_id      = data.aws_subnet.default[each.key].vpc_id
-
-  tags = var.tags
-
-  ingress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.cloudfront_to_alb[each.key].id]
   }
 
   egress {

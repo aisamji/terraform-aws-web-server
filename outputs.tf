@@ -4,8 +4,8 @@ locals {
 
 output "bucket" {
   value = {
-    name = local.bucket.bucket
-    arn  = local.bucket.arn
+    id  = local.bucket.id
+    arn = local.bucket.arn
   }
 }
 
@@ -13,8 +13,8 @@ output "application" {
   value = {
     for n, r in local.application_rules :
     n => {
-      security_group = aws_security_group.cloudfront_to_alb[r.origin.id].id
-      target_groups  = aws_lb_target_group.default[n].arn
+      security_group = aws_security_group.default[r.origin.id].id
+      target_group   = aws_lb_target_group.default[n].arn
     }
   }
 }

@@ -31,7 +31,7 @@ resource "aws_cloudfront_distribution" "default" {
     iterator = loadbalancer
 
     content {
-      origin_id   = "application"
+      origin_id   = loadbalancer.key
       domain_name = loadbalancer.value.dns_name
 
       custom_header {
@@ -56,7 +56,7 @@ resource "aws_cloudfront_distribution" "default" {
   default_cache_behavior {
     allowed_methods  = lookup(local.default_rule, "allow_all_methods", false) ? local.methods.all : lookup(local.default_rule, "allow_options_method", false) ? local.methods.options : local.methods.default
     cached_methods   = lookup(local.default_rule, "cache_options_method", false) ? local.methods.options : local.methods.default
-    target_origin_id = local.default_rule.origin.type
+    target_origin_id = local.default_rule.origin.id
 
     viewer_protocol_policy = "redirect-to-https"
 
@@ -82,7 +82,7 @@ resource "aws_cloudfront_distribution" "default" {
       path_pattern     = rule.value.matcher
       allowed_methods  = lookup(rule.value, "allow_all_methods", false) ? local.methods.all : lookup(rule.value, "allow_options_method", false) ? local.methods.options : local.methods.default
       cached_methods   = lookup(rule.value, "cache_options_method", false) ? local.methods.options : local.methods.default
-      target_origin_id = rule.value.origin.type
+      target_origin_id = rule.value.origin.id
 
       viewer_protocol_policy = "redirect-to-https"
 
