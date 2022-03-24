@@ -109,6 +109,13 @@ resource "aws_security_group" "cloudfront_to_alb" {
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_security_group" "alb_to_server" {
@@ -121,15 +128,14 @@ resource "aws_security_group" "alb_to_server" {
   ingress {
     from_port       = 0
     to_port         = 0
-    protocol        = "tcp"
+    protocol        = "-1"
     security_groups = [aws_security_group.cloudfront_to_alb[each.key].id]
   }
 
   egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }

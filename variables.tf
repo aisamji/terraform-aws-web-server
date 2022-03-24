@@ -21,7 +21,6 @@ variable "rules" {
       type    = string
       subnets = list(string)
     })
-    cached = bool
   }))
 
   validation {

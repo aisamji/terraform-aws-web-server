@@ -3,11 +3,6 @@ locals {
   default_rule      = one([for n, r in local.rules : r if r.prefix == "/"])
   non_default_rules = { for n, r in local.rules : n => r if r.prefix != "/" }
 
-  cache_policies = {
-    enabled  = "658327ea-f89d-4fab-a63d-7e88639e58f6"
-    disabled = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
-  }
-
   methods = {
     all     = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     options = ["GET", "HEAD", "OPTIONS"]
@@ -49,7 +44,7 @@ resource "aws_cloudfront_distribution" "default" {
         https_port = 443
 
         origin_protocol_policy = local.use_custom_domain ? "https-only" : "http-only"
-        origin_ssl_protocols   = ["TLSv1", "TLSv1.1", "TLSv1.2"]
+        origin_ssl_protocols   = ["TLSv1"]
       }
     }
   }
@@ -62,9 +57,21 @@ resource "aws_cloudfront_distribution" "default" {
     allowed_methods  = lookup(local.default_rule, "allow_all_methods", false) ? local.methods.all : lookup(local.default_rule, "allow_options_method", false) ? local.methods.options : local.methods.default
     cached_methods   = lookup(local.default_rule, "cache_options_method", false) ? local.methods.options : local.methods.default
     target_origin_id = local.default_rule.origin.type
-    cache_policy_id  = local.default_rule.cached ? local.cache_policies["enabled"] : local.cache_policies["disabled"]
 
     viewer_protocol_policy = "redirect-to-https"
+
+    min_ttl     = 0
+    default_ttl = 3600
+    max_ttl     = 86400
+
+    forwarded_values {
+      headers      = local.default_rule.origin.type == "application" ? ["Host", "Origin"] : []
+      query_string = true
+
+      cookies {
+        forward = "all"
+      }
+    }
   }
 
   dynamic "ordered_cache_behavior" {
@@ -76,9 +83,21 @@ resource "aws_cloudfront_distribution" "default" {
       allowed_methods  = lookup(rule.value, "allow_all_methods", false) ? local.methods.all : lookup(rule.value, "allow_options_method", false) ? local.methods.options : local.methods.default
       cached_methods   = lookup(rule.value, "cache_options_method", false) ? local.methods.options : local.methods.default
       target_origin_id = rule.value.origin.type
-      cache_policy_id  = rule.value.cached ? local.cache_policies["enabled"] : local.cache_policies["disabled"]
 
       viewer_protocol_policy = "redirect-to-https"
+
+      min_ttl     = 0
+      default_ttl = 3600
+      max_ttl     = 86400
+
+      forwarded_values {
+        headers      = rule.value.origin.type == "application" ? ["Host", "Origin"] : []
+        query_string = true
+
+        cookies {
+          forward = "all"
+        }
+      }
     }
   }
 
