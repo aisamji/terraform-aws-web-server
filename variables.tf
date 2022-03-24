@@ -18,8 +18,7 @@ variable "rules" {
   type = list(object({
     prefix = string
     origin = object({
-      type    = string
-      subnets = list(string)
+      type = string
     })
   }))
 
@@ -71,10 +70,9 @@ variable "certificate_arn" {
   default = null
 }
 
-# variable "network_config" {
-#   type = object({
-#     vpc_id  = string
-#     subnets = list(string)
-#   })
-#   default = null
-# }
+variable "loadbalancer_config" {
+  type = object({
+    subnet_ids = list(string)
+  })
+  default = null
+}

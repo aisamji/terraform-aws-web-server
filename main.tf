@@ -7,9 +7,6 @@ locals {
     =>
     merge(r, {
       matcher = r.prefix == "/" ? "*" : "${r.prefix}/*"
-      origin = merge(r.origin, {
-        id = try(join("|", concat([r.origin.type], r.origin.subnets)), "bucket")
-      })
     })
   }
 
