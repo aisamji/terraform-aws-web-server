@@ -17,9 +17,7 @@ variable "tags" {
 variable "rules" {
   type = list(object({
     prefix = string
-    origin = object({
-      type = string
-    })
+    origin = map(string)
   }))
 
   validation {

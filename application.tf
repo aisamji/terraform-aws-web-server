@@ -70,9 +70,9 @@ resource "aws_lb_target_group" "default" {
   for_each = local.application_rules
 
   name        = each.key
-  port        = 80
+  port        = lookup(each.value.origin, "server_port", "80")
   protocol    = "HTTP"
-  target_type = "ip"
+  target_type = lookup(each.value.origin, "server_type", "ip")
   vpc_id      = data.aws_subnet.default.0.vpc_id
 }
 
