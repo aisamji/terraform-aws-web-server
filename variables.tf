@@ -74,3 +74,14 @@ variable "loadbalancer_config" {
   })
   default = null
 }
+
+variable "bucket_config" {
+  type = object({
+    versioned        = bool
+    retention_period = number
+  })
+  default = {
+    versioned        = true
+    retention_period = 7
+  }
+}

@@ -11,6 +11,20 @@
       "Principal": {
         "AWS": "${ORIGIN_ACCESS_IDENTITY_ARN}"
       }
+    },
+    {
+      "Effect": "Deny",
+      "Action": "s3:*",
+      "Resource": [
+        "${BUCKET_ARN}",
+        "${BUCKET_ARN}/*"
+      ],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      },
+      "Principal": "*"
     }
   ]
 }
